@@ -120,14 +120,18 @@ private:
     string type; // "Bus" or "Train"
     vector<int> scheduledVehicleIDs; // Store vehicle IDs
     static const int MAX_SCHEDULES = 10;
+    static int nextStationID;
+    int stationID;
+
 
 public:
     // Constructor
     Station(const string& name, const string& location, const string& type)
-        : name(name), location(location), type(type) {}
+        : name(name), location(location), type(type), stationID(nextStationID++) {}
     
     // Getters
     string getName() const { return name; }
+    int getStationID() const { return stationID; }
     string getLocation() const { return location; }
     string getType() const { return type; }
     vector<int> getScheduledVehicles() const { return scheduledVehicleIDs; }
@@ -159,6 +163,7 @@ public:
     
     void displayInfo() const {
         cout << "\n=== STATION INFORMATION ===" << endl;
+        cout << "Station ID: " << stationID << endl;
         cout << "Name: " << name << endl;
         cout << "Location: " << location << endl;
         cout << "Type: " << type << endl;
@@ -283,10 +288,10 @@ public:
         return nullptr;
     }
     
-    // Find station by name
-    Station* findStation(const string& name) {
+    // Find station by ID
+    Station* findStation(int stationID) {
         for (Station* station : stations) {
-            if (station->getName() == name) {
+            if (station->getStationID() == stationID) {
                 return station;
             }
         }
@@ -332,6 +337,7 @@ public:
 // Initialize static members
 int Vehicle::nextVehicleID = 1;
 int Passenger::nextPassengerID = 1;
+int Station::nextStationID = 1;
 
 // Implementation of Vehicle::assignToStation
 void Vehicle::assignToStation(Station* station) {
@@ -367,7 +373,7 @@ void runMenu(TransportationSystem& ts) {
 
     do {
         cout << "\n=== PUBLIC TRANSPORTATION MANAGEMENT SYSTEM ===" << endl;
-        cout << "1.  Add Vehicle (Regular or Express Bus)" << endl;
+        cout << "1.  Add Vehicle" << endl;
         cout << "2.  Add Station" << endl;
         cout << "3.  Add Passenger" << endl;
         cout << "4.  Schedule Vehicle at Station" << endl;
@@ -379,7 +385,7 @@ void runMenu(TransportationSystem& ts) {
         cout << "10. Display All Stations" << endl;
         cout << "11. Display All Passengers" << endl;
         cout << "12. Find Vehicle by ID" << endl;
-        cout << "13. Find Station by Name" << endl;
+        cout << "13. Find Station by ID" << endl;
         cout << "14. Find Passenger by ID" << endl;
         cout << "0.  Exit" << endl;
         cout << "Enter your choice: ";
@@ -439,15 +445,14 @@ void runMenu(TransportationSystem& ts) {
             }
             case 4: {
                 int vehicleID;
-                string stationName;
+                int stationID;
                 cout << "Enter vehicle ID: ";
                 cin >> vehicleID;
-                cout << "Enter station name: ";
-                cin.ignore();
-                getline(cin, stationName);
+                cout << "Enter station ID: ";
+                cin >> stationID;
 
                 Vehicle* vehicle = ts.findVehicle(vehicleID);
-                Station* station = ts.findStation(stationName);
+                Station* station = ts.findStation(stationID);
 
                 if (vehicle && station) {
                     vehicle->assignToStation(station);
@@ -458,14 +463,13 @@ void runMenu(TransportationSystem& ts) {
             }
             case 5: {
                 int vehicleID;
-                string stationName;
+                int stationID;
                 cout << "Enter vehicle ID: ";
                 cin >> vehicleID;
-                cout << "Enter station name: ";
-                cin.ignore();
-                getline(cin, stationName);
+                cout << "Enter station ID: ";
+                cin >> stationID;
 
-                Station* station = ts.findStation(stationName);
+                Station* station = ts.findStation(stationID);
                 if (station) {
                     station->removeSchedule(vehicleID);
                 } else {
@@ -551,11 +555,10 @@ void runMenu(TransportationSystem& ts) {
                 break;
             }
             case 13: {
-                string stationName;
-                cout << "Enter station name: ";
-                cin.ignore();
-                getline(cin, stationName);
-                Station* station = ts.findStation(stationName);
+                int stationID;
+                cout << "Enter station ID: ";
+                cin >> stationID;
+                Station* station = ts.findStation(stationID);
                 if (station) {
                     station->displayInfo();
                 } else {
