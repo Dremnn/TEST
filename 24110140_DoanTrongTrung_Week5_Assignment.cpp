@@ -331,7 +331,7 @@ public:
 
 // Initialize static members
 int Vehicle::nextVehicleID = 1;
-int Passenger::nextPassengerID = 1001;
+int Passenger::nextPassengerID = 1;
 
 // Implementation of Vehicle::assignToStation
 void Vehicle::assignToStation(Station* station) {
@@ -340,96 +340,265 @@ void Vehicle::assignToStation(Station* station) {
     }
 }
 
-// Test and demonstration functions
-void demonstratePolymorphism(TransportationSystem& ts) {
-    cout << "\n=== POLYMORPHISM DEMONSTRATION ===" << endl;
+// Initialize sample data
+void initializeSampleData(TransportationSystem& ts) {
+    // Add sample stations
+    ts.addStation(new Station("Central Station", "City Center", "Bus"));
+    ts.addStation(new Station("Airport Terminal", "Airport District", "Bus"));
+    ts.addStation(new Station("University Campus", "Education District", "Bus"));
     
-    Vehicle* regularBus = new Vehicle("Route A", 40);
-    Vehicle* expressBus = new ExpressBus("Route B", 30, 60, 5);
+    // Add sample vehicles
+    ts.addVehicle(new Vehicle("Route 101", 45));
+    ts.addVehicle(new ExpressBus("Express A1", 35, 70, 5));
+    ts.addVehicle(new Vehicle("Route 202", 50));
+    ts.addVehicle(new ExpressBus("Express B2", 30, 65, 4));
     
-    ts.addVehicle(regularBus);
-    ts.addVehicle(expressBus);
+    // Add sample passengers
+    ts.addPassenger(new Passenger("Nguyen Van A"));
+    ts.addPassenger(new Passenger("Tran Thi B"));
+    ts.addPassenger(new Passenger("Le Van C"));
     
-    double distance = 120.0; // 120 km
-    
-    cout << "\nTravel time calculation for 120km journey:" << endl;
-    cout << "Regular Vehicle: " << regularBus->calculateTravelTime(distance) << " hours" << endl;
-    cout << "Express Bus: " << expressBus->calculateTravelTime(distance) << " hours" << endl;
-    
-    cout << "\nPolymorphic method calls through base class pointers:" << endl;
-    regularBus->displayInfo();
-    cout << "\n";
-    expressBus->displayInfo();
+    cout << "Sample data initialized successfully!" << endl;
 }
 
-void demonstrateBookingSystem(TransportationSystem& ts) {
-    cout << "\n=== BOOKING SYSTEM DEMONSTRATION ===" << endl;
-    
-    // Create a small capacity vehicle for testing
-    Vehicle* smallBus = new Vehicle("City Center Route", 2);
-    ts.addVehicle(smallBus);
-    
-    // Create passengers
-    Passenger* passenger1 = new Passenger("John Doe");
-    Passenger* passenger2 = new Passenger("Jane Smith");
-    Passenger* passenger3 = new Passenger("Bob Wilson");
-    
-    ts.addPassenger(passenger1);
-    ts.addPassenger(passenger2);
-    ts.addPassenger(passenger3);
-    
-    cout << "\nTesting booking with capacity limits:" << endl;
-    passenger1->bookRide(smallBus); // Should succeed
-    passenger2->bookRide(smallBus); // Should succeed
-    passenger3->bookRide(smallBus); // Should fail (capacity full)
-    
-    cout << "\nCurrent vehicle status:" << endl;
-    smallBus->displayInfo();
-    
-    cout << "\nTesting cancellation:" << endl;
-    passenger1->cancelRide(smallBus); // Should succeed
-    passenger3->bookRide(smallBus);   // Should now succeed
-}
+// Menu-driven interface
+void runMenu(TransportationSystem& ts) {
+    int choice;
 
-void demonstrateStationScheduling(TransportationSystem& ts) {
-    cout << "\n=== STATION SCHEDULING DEMONSTRATION ===" << endl;
-    
-    Station* centralStation = new Station("Central Station", "City Center", "Bus");
-    ts.addStation(centralStation);
-    
-    // Create vehicles and schedule them
-    Vehicle* bus1 = new Vehicle("Route X", 50);
-    Vehicle* bus2 = new ExpressBus("Route Y", 40, 70, 4);
-    
-    ts.addVehicle(bus1);
-    ts.addVehicle(bus2);
-    
-    cout << "\nScheduling vehicles at station:" << endl;
-    bus1->assignToStation(centralStation);
-    bus2->assignToStation(centralStation);
-    
-    centralStation->displayInfo();
+    do {
+        cout << "\n=== PUBLIC TRANSPORTATION MANAGEMENT SYSTEM ===" << endl;
+        cout << "1.  Add Vehicle (Regular or Express Bus)" << endl;
+        cout << "2.  Add Station" << endl;
+        cout << "3.  Add Passenger" << endl;
+        cout << "4.  Schedule Vehicle at Station" << endl;
+        cout << "5.  Remove Vehicle from Station" << endl;
+        cout << "6.  Book Passenger Ride" << endl;
+        cout << "7.  Cancel Passenger Ride" << endl;
+        cout << "8.  Calculate Travel Time" << endl;
+        cout << "9.  Display All Vehicles" << endl;
+        cout << "10. Display All Stations" << endl;
+        cout << "11. Display All Passengers" << endl;
+        cout << "12. Find Vehicle by ID" << endl;
+        cout << "13. Find Station by Name" << endl;
+        cout << "14. Find Passenger by ID" << endl;
+        cout << "0.  Exit" << endl;
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        switch (choice) {
+            case 1: {
+                string route;
+                int capacity;
+                cout << "Enter route name: ";
+                cin.ignore();
+                getline(cin, route);
+                cout << "Enter capacity: ";
+                cin >> capacity;
+
+                int typeChoice;
+                cout << "Select vehicle type:\n";
+                cout << "1. Regular Vehicle\n";
+                cout << "2. Express Bus\n";
+                cout << "Enter choice: ";
+                cin >> typeChoice;
+
+                if (typeChoice == 1) {
+                    ts.addVehicle(new Vehicle(route, capacity));
+                } else if (typeChoice == 2) {
+                    double speed;
+                    int maxStops;
+                    cout << "Enter speed (km/h): ";
+                    cin >> speed;
+                    cout << "Enter max stops: ";
+                    cin >> maxStops;
+                    ts.addVehicle(new ExpressBus(route, capacity, speed, maxStops));
+                } else {
+                    cout << "Invalid vehicle type selected." << endl;
+                }
+                break;
+            }
+            case 2: {
+                string name, location, type;
+                cout << "Enter station name: ";
+                cin.ignore();
+                getline(cin, name);
+                cout << "Enter location: ";
+                getline(cin, location);
+                cout << "Enter type (Bus/Train): ";
+                getline(cin, type);
+                ts.addStation(new Station(name, location, type));
+                break;
+            }
+            case 3: {
+                string name;
+                cout << "Enter passenger name: ";
+                cin.ignore();
+                getline(cin, name);
+                ts.addPassenger(new Passenger(name));
+                break;
+            }
+            case 4: {
+                int vehicleID;
+                string stationName;
+                cout << "Enter vehicle ID: ";
+                cin >> vehicleID;
+                cout << "Enter station name: ";
+                cin.ignore();
+                getline(cin, stationName);
+
+                Vehicle* vehicle = ts.findVehicle(vehicleID);
+                Station* station = ts.findStation(stationName);
+
+                if (vehicle && station) {
+                    vehicle->assignToStation(station);
+                } else {
+                    cout << "Vehicle or station not found." << endl;
+                }
+                break;
+            }
+            case 5: {
+                int vehicleID;
+                string stationName;
+                cout << "Enter vehicle ID: ";
+                cin >> vehicleID;
+                cout << "Enter station name: ";
+                cin.ignore();
+                getline(cin, stationName);
+
+                Station* station = ts.findStation(stationName);
+                if (station) {
+                    station->removeSchedule(vehicleID);
+                } else {
+                    cout << "Station not found." << endl;
+                }
+                break;
+            }
+            case 6: {
+                int passengerID, vehicleID;
+                cout << "Enter passenger ID: ";
+                cin >> passengerID;
+                cout << "Enter vehicle ID: ";
+                cin >> vehicleID;
+
+                Passenger* passenger = ts.findPassenger(passengerID);
+                Vehicle* vehicle = ts.findVehicle(vehicleID);
+
+                if (passenger && vehicle) {
+                    passenger->bookRide(vehicle);
+                } else {
+                    cout << "Passenger or vehicle not found." << endl;
+                }
+                break;
+            }
+            case 7: {
+                int passengerID, vehicleID;
+                cout << "Enter passenger ID: ";
+                cin >> passengerID;
+                cout << "Enter vehicle ID: ";
+                cin >> vehicleID;
+
+                Passenger* passenger = ts.findPassenger(passengerID);
+                Vehicle* vehicle = ts.findVehicle(vehicleID);
+
+                if (passenger && vehicle) {
+                    passenger->cancelRide(vehicle);
+                } else {
+                    cout << "Passenger or vehicle not found." << endl;
+                }
+                break;
+            }
+            case 8: {
+                int vehicleID;
+                double distance;
+                cout << "Enter vehicle ID: ";
+                cin >> vehicleID;
+                cout << "Enter distance (km): ";
+                cin >> distance;
+
+                Vehicle* vehicle = ts.findVehicle(vehicleID);
+                if (vehicle) {
+                    double time = vehicle->calculateTravelTime(distance);
+                    cout << "Travel time for " << distance << "km: " << time << " hours" << endl;
+                    cout << "Vehicle type: " << vehicle->getVehicleType() << endl;
+                } else {
+                    cout << "Vehicle not found." << endl;
+                }
+                break;
+            }
+            case 9: {
+                ts.displayAllVehicles();
+                break;
+            }
+            case 10: {
+                ts.displayAllStations();
+                break;
+            }
+            case 11: {
+                ts.displayAllPassengers();
+                break;
+            }
+            case 12: {
+                int vehicleID;
+                cout << "Enter vehicle ID: ";
+                cin >> vehicleID;
+                Vehicle* vehicle = ts.findVehicle(vehicleID);
+                if (vehicle) {
+                    cout << "\n=== VEHICLE FOUND ===" << endl;
+                    vehicle->displayInfo();
+                } else {
+                    cout << "Vehicle not found." << endl;
+                }
+                break;
+            }
+            case 13: {
+                string stationName;
+                cout << "Enter station name: ";
+                cin.ignore();
+                getline(cin, stationName);
+                Station* station = ts.findStation(stationName);
+                if (station) {
+                    station->displayInfo();
+                } else {
+                    cout << "Station not found." << endl;
+                }
+                break;
+            }
+            case 14: {
+                int passengerID;
+                cout << "Enter passenger ID: ";
+                cin >> passengerID;
+                Passenger* passenger = ts.findPassenger(passengerID);
+                if (passenger) {
+                    passenger->displayInfo();
+                } else {
+                    cout << "Passenger not found." << endl;
+                }
+                break;
+            }
+            case 0: {
+                cout << "Exiting Transportation Management System. Goodbye!" << endl;
+                break;
+            }
+            default: {
+                cout << "Invalid choice. Please try again." << endl;
+                break;
+            }
+        }
+
+    } while (choice != 0);
 }
 
 int main() {
-    cout << "=== PUBLIC TRANSPORTATION SYSTEM DEMO ===" << endl;
+    cout << "=== PUBLIC TRANSPORTATION MANAGEMENT SYSTEM ===" << endl;
+    cout << "Initializing system..." << endl;
     
     TransportationSystem system;
     
-    // Test 1: Demonstrate inheritance and polymorphism
-    demonstratePolymorphism(system);
+    // Initialize with sample data
+    initializeSampleData(system);
     
-    // Test 2: Demonstrate booking system with capacity limits
-    demonstrateBookingSystem(system);
-    
-    // Test 3: Demonstrate station scheduling
-    demonstrateStationScheduling(system);
-    
-    // Display system overview
-    cout << "\n=== FINAL SYSTEM STATE ===" << endl;
-    system.displayAllVehicles();
-    system.displayAllStations();
-    system.displayAllPassengers();
+    // Run interactive menu
+    runMenu(system);
     
     return 0;
 }
