@@ -1,767 +1,642 @@
 #include <iostream>
-#include <string>
 #include <vector>
-#include <algorithm>
-#include <map>
+#include <string>
 #include <iomanip>
+#include <ctime>
+
 using namespace std;
 
 // Forward declarations
-class Station;
-class Vehicle;
-class Route;
+class Transaction;
+class Account;
 
-// Class để quản lý thời gian
-class Time {
+// Transaction class to represent banking transactions
+class Transaction {
 private:
-    int hour;
-    int minute;
-
-public:
-    Time(int h = 0, int m = 0) : hour(h), minute(m) {
-        normalize();
-    }
-    
-    void normalize() {
-        if (minute >= 60) {
-            hour += minute / 60;
-            minute = minute % 60;
-        }
-        if (hour >= 24) {
-            hour = hour % 24;
-        }
-    }
-    
-    string toString() const {
-        return (hour < 10 ? "0" : "") + to_string(hour) + ":" + 
-               (minute < 10 ? "0" : "") + to_string(minute);
-    }
-    
-    int getHour() const { return hour; }
-    int getMinute() const { return minute; }
-    
-    bool operator<(const Time& other) const {
-        return (hour < other.hour) || (hour == other.hour && minute < other.minute);
-    }
-    
-    bool operator==(const Time& other) const {
-        return hour == other.hour && minute == other.minute;
-    }
-};
-
-// Class để quản lý Route (tuyến đường)
-class Route {
-private:
-    int routeID;
-    int fromStationID;
-    int toStationID;
-    Time departureTime;
-    Time arrivalTime;
-    static int nextRouteID;
-
-public:
-    Route(int from, int to, Time dept, Time arr) 
-        : routeID(nextRouteID++), fromStationID(from), toStationID(to), 
-          departureTime(dept), arrivalTime(arr) {}
-    
-    // Getters
-    int getRouteID() const { return routeID; }
-    int getFromStationID() const { return fromStationID; }
-    int getToStationID() const { return toStationID; }
-    Time getDepartureTime() const { return departureTime; }
-    Time getArrivalTime() const { return arrivalTime; }
-    
-    void displayInfo() const {
-        cout << "Route ID: " << routeID 
-             << ", From Station " << fromStationID 
-             << " to Station " << toStationID
-             << ", Departure: " << departureTime.toString() 
-             << ", Arrival: " << arrivalTime.toString() << endl;
-    }
-};
-
-// Enhanced Vehicle class với route management
-class Vehicle {
-protected:
-    string vehicleName;
-    int capacity;
-    int currentPassengers;
-    bool status; // true = on-time, false = delayed
-    static int nextVehicleID;
-    int vehicleID;
-    vector<Route> assignedRoutes; // Các tuyến đường được gán cho xe này
+    double amount;
+    string type;
+    string date;
 
 public:
     // Constructor
-    Vehicle(const string& name, int cap) 
-        : vehicleName(name), capacity(cap), currentPassengers(0), 
-          status(true), vehicleID(nextVehicleID++) {}
-    
-    // Virtual destructor
-    virtual ~Vehicle() {}
-    
-    // Virtual methods for polymorphism
-    virtual double calculateTravelTime(double distance) {
-        return distance / 40.0; // Base speed: 40 km/h
+    Transaction(double amt, const string& transType) : amount(amt), type(transType) {
+        // Simple date format for demonstration
+        time_t now = time(0);
+        char* dt = ctime(&now);
+        date = string(dt);
+        date.pop_back(); // Remove newline character
     }
-    
-    virtual string getVehicleType() const {
-        return "Regular Vehicle";
-    }
-    
-    virtual void displayInfo() const {
-        cout << "\n=== VEHICLE INFORMATION ===" << endl;
-        cout << "Vehicle Type: " << getVehicleType() << endl;
-        cout << "ID: " << vehicleID << endl;
-        cout << "Name: " << vehicleName << endl;
-        cout << "Capacity: " << capacity << endl;
-        cout << "Current Passengers: " << currentPassengers << endl;
-        cout << "Status: " << (status ? "On-time" : "Delayed") << endl;
-        cout << "Assigned Routes: " << endl;
-        if (assignedRoutes.empty()) {
-            cout << "  No routes assigned" << endl;
-        } else {
-            for (const auto& route : assignedRoutes) {
-                cout << "  ";
-                route.displayInfo();
-            }
-        }
-    }
-    
+
     // Getters
-    int getVehicleID() const { return vehicleID; }
-    string getVehicleName() const { return vehicleName; }
-    int getCapacity() const { return capacity; }
-    int getCurrentPassengers() const { return currentPassengers; }
-    bool getStatus() const { return status; }
-    vector<Route> getAssignedRoutes() const { return assignedRoutes; }
-    
-    // Route management methods
-    void addRoute(const Route& route) {
-        assignedRoutes.push_back(route);
-        cout << "Route added to Vehicle " << vehicleID << ": ";
-        route.displayInfo();
-    }
-    
-    bool hasRoute(int routeID) const {
-        for (const auto& route : assignedRoutes) {
-            if (route.getRouteID() == routeID) {
-                return true;
-            }
-        }
-        return false;
-    }
-    
-    Route* findRoute(int routeID) {
-        for (auto& route : assignedRoutes) {
-            if (route.getRouteID() == routeID) {
-                return &route;
-            }
-        }
-        return nullptr;
-    }
-    
-    // Seat management
-    bool hasAvailableSeats() const {
-        return currentPassengers < capacity;
-    }
-    
-    bool bookSeat() {
-        if (hasAvailableSeats()) {
-            currentPassengers++;
-            return true;
-        }
-        return false;
-    }
-    
-    bool cancelSeat() {
-        if (currentPassengers > 0) {
-            currentPassengers--;
-            return true;
-        }
-        return false;
-    }
-    
-    void setStatus(bool newStatus) { status = newStatus; }
-};
-
-// Enhanced ExpressBus class
-class ExpressBus : public Vehicle {
-private:
-    double speed;
-    int maxStops;
-
-public:
-    ExpressBus(const string& name, int capacity, double speed, int maxStops)
-        : Vehicle(name, capacity), speed(speed), maxStops(maxStops) {}
-    
-    double calculateTravelTime(double distance) override {
-        double baseTime = distance / speed;
-        return baseTime * 0.8; // 20% faster
-    }
-    
-    string getVehicleType() const override {
-        return "Express Bus";
-    }
-    
-    void displayInfo() const override {
-        Vehicle::displayInfo();
-        cout << "Speed: " << speed << " km/h" << endl;
-        cout << "Max Stops: " << maxStops << endl;
-        cout << "Express Service: 20% faster travel time" << endl;
-    }
-    
-    double getSpeed() const { return speed; }
-    int getMaxStops() const { return maxStops; }
-};
-
-// Enhanced Station class với lịch trình chi tiết
-class Station {
-private:
-    string name;
-    string location;
-    string type;
-    int stationID;
-    static int nextStationID;
-    
-    // Lịch trình đến và đi theo vehicle và route
-    map<int, vector<int>> arrivals;  // vehicleID -> list of routeIDs arriving
-    map<int, vector<int>> departures;  // vehicleID -> list of routeIDs departing
-
-public:
-    Station(const string& name, const string& location, const string& type)
-        : name(name), location(location), type(type), stationID(nextStationID++) {}
-    
-    // Getters
-    string getName() const { return name; }
-    int getStationID() const { return stationID; }
-    string getLocation() const { return location; }
+    double getAmount() const { return amount; }
     string getType() const { return type; }
-    
-    // Schedule management methods
-    void addArrival(int vehicleID, int routeID) {
-        arrivals[vehicleID].push_back(routeID);
-        cout << "Added Arrival schedule: Vehicle " << vehicleID 
-             << " Route " << routeID << " to Station " << stationID << endl;
-    }
-    
-    void addDeparture(int vehicleID, int routeID) {
-        departures[vehicleID].push_back(routeID);
-        cout << "Added Departure schedule: Vehicle " << vehicleID 
-             << " Route " << routeID << " from Station " << stationID << endl;
-    }
-    
-    vector<int> getArrivingVehicles() const {
-        vector<int> vehicles;
-        for (const auto& pair : arrivals) {
-            vehicles.push_back(pair.first);
-        }
-        return vehicles;
-    }
-    
-    vector<int> getDepartingVehicles() const {
-        vector<int> vehicles;
-        for (const auto& pair : departures) {
-            vehicles.push_back(pair.first);
-        }
-        return vehicles;
-    }
-    
-    vector<int> getArrivalRoutes(int vehicleID) const {
-        auto it = arrivals.find(vehicleID);
-        if (it != arrivals.end()) {
-            return it->second;
-        }
-        return vector<int>();
-    }
-    
-    vector<int> getDepartureRoutes(int vehicleID) const {
-        auto it = departures.find(vehicleID);
-        if (it != departures.end()) {
-            return it->second;
-        }
-        return vector<int>();
-    }
-    
-    void displayInfo() const {
-        cout << "\n=== STATION INFORMATION ===" << endl;
-        cout << "Station ID: " << stationID << endl;
-        cout << "Name: " << name << endl;
-        cout << "Location: " << location << endl;
-        cout << "Type: " << type << endl;
-        
-        cout << "\n--- Arrival SCHEDULES ---" << endl;
-        if (arrivals.empty()) {
-            cout << "No Arrival schedules" << endl;
-        } else {
-            for (const auto& vehiclePair : arrivals) {
-                cout << "Vehicle " << vehiclePair.first << " (Routes: ";
-                for (size_t i = 0; i < vehiclePair.second.size(); ++i) {
-                    cout << vehiclePair.second[i];
-                    if (i < vehiclePair.second.size() - 1) cout << ", ";
-                }
-                cout << ")" << endl;
-            }
-        }
-        
-        cout << "\n--- Departure SCHEDULES ---" << endl;
-        if (departures.empty()) {
-            cout << "No Departure schedules" << endl;
-        } else {
-            for (const auto& vehiclePair : departures) {
-                cout << "Vehicle " << vehiclePair.first << " (Routes: ";
-                for (size_t i = 0; i < vehiclePair.second.size(); ++i) {
-                    cout << vehiclePair.second[i];
-                    if (i < vehiclePair.second.size() - 1) cout << ", ";
-                }
-                cout << ")" << endl;
-            }
-        }
+    string getDate() const { return date; }
+
+    // Display transaction details
+    void displayTransaction() const {
+        cout << "Transaction: " << type << " - $" << fixed << setprecision(2) 
+             << amount << " on " << date << endl;
     }
 };
 
-// Enhanced Passenger class với chi tiết booking
-struct BookingInfo {
-    int vehicleID;
-    int routeID;
-    int fromStationID;
-    int toStationID;
-    Time departureTime;
-    Time arrivalTime;
-    
-    BookingInfo(int vID, int rID, int from, int to, Time dept, Time arr)
-        : vehicleID(vID), routeID(rID), fromStationID(from), toStationID(to),
-          departureTime(dept), arrivalTime(arr) {}
-    
-    void displayInfo() const {
-        cout << "  Vehicle " << vehicleID << ", Route " << routeID 
-             << ", From Station " << fromStationID << " to Station " << toStationID
-             << ", " << departureTime.toString() << " - " << arrivalTime.toString() << endl;
-    }
-};
-
-class Passenger {
-private:
-    string name;
-    int passengerID;
-    vector<BookingInfo> bookings;
-    static int nextPassengerID;
+// Base Account class
+class Account {
+protected:
+    static int nextAccountNumber; // Static member for auto-generating account numbers
+    int accountNumber;
+    double balance;
+    string ownerName;
+    vector<Transaction> transactionHistory;
 
 public:
-    Passenger(const string& name) 
-        : name(name), passengerID(nextPassengerID++) {}
-    
-    // Getters
-    string getName() const { return name; }
-    int getPassengerID() const { return passengerID; }
-    vector<BookingInfo> getBookings() const { return bookings; }
-    
-    // Enhanced booking methods
-    bool bookRoute(Vehicle* vehicle, int routeID) {
-        if (!vehicle) {
-            cout << "Vehicle not found!" << endl;
-            return false;
-        }
-        
-        Route* route = vehicle->findRoute(routeID);
-        if (!route) {
-            cout << "Route " << routeID << " not found on Vehicle " << vehicle->getVehicleID() << endl;
-            return false;
-        }
-        
-        if (!vehicle->hasAvailableSeats()) {
-            cout << "No available seats on Vehicle " << vehicle->getVehicleID() << endl;
-            return false;
-        }
-        
-        // Check if already booked
-        for (const auto& booking : bookings) {
-            if (booking.vehicleID == vehicle->getVehicleID() && booking.routeID == routeID) {
-                cout << "Already booked this route!" << endl;
-                return false;
-            }
-        }
-        
-        if (vehicle->bookSeat()) {
-            BookingInfo booking(vehicle->getVehicleID(), routeID, 
-                              route->getFromStationID(), route->getToStationID(),
-                              route->getDepartureTime(), route->getArrivalTime());
-            bookings.push_back(booking);
-            cout << name << " successfully booked: ";
-            booking.displayInfo();
-            return true;
-        }
-        
-        return false;
+    // Constructor
+    Account(const string& owner, double initialBalance = 0.0) 
+        : ownerName(owner), balance(initialBalance) {
+        accountNumber = nextAccountNumber++;
     }
-    
-    bool cancelRoute(Vehicle* vehicle, int routeID) {
-        if (!vehicle) return false;
-        
-        for (auto it = bookings.begin(); it != bookings.end(); ++it) {
-            if (it->vehicleID == vehicle->getVehicleID() && it->routeID == routeID) {
-                vehicle->cancelSeat();
-                cout << name << " cancelled booking: ";
-                it->displayInfo();
-                bookings.erase(it);
-                return true;
-            }
-        }
-        
-        cout << "Booking not found for " << name << endl;
-        return false;
-    }
-    
-    void displayInfo() const {
-        cout << "\n=== PASSENGER INFORMATION ===" << endl;
-        cout << "Name: " << name << endl;
-        cout << "ID: " << passengerID << endl;
-        cout << "Bookings: " << endl;
-        if (bookings.empty()) {
-            cout << "  No bookings" << endl;
+
+    // Virtual destructor for proper inheritance
+    virtual ~Account() {}
+
+    // Virtual methods for polymorphism
+    virtual void deposit(double amount) {
+        if (amount > 0) {
+            balance += amount;
+            transactionHistory.push_back(Transaction(amount, "Deposit"));
+            cout << "Deposited $" << fixed << setprecision(2) << amount 
+                 << " to account " << accountNumber << endl;
         } else {
-            for (const auto& booking : bookings) {
-                booking.displayInfo();
-            }
+            cout << "Error: Deposit amount must be positive!" << endl;
         }
     }
-};
 
-// Enhanced Transportation Management System
-class TransportationSystem {
-private:
-    vector<Vehicle*> vehicles;
-    vector<Station*> stations;
-    vector<Passenger*> passengers;
-
-public:
-    ~TransportationSystem() {
-        for (Vehicle* vehicle : vehicles) delete vehicle;
-        for (Station* station : stations) delete station;
-        for (Passenger* passenger : passengers) delete passenger;
-    }
-    
-    void addVehicle(Vehicle* vehicle) {
-        vehicles.push_back(vehicle);
-        cout << "Added " << vehicle->getVehicleType() << " '" 
-             << vehicle->getVehicleName() << "' (ID: " << vehicle->getVehicleID() 
-             << ") to the system." << endl;
-    }
-    
-    void addStation(Station* station) {
-        stations.push_back(station);
-        cout << "Added station '" << station->getName() 
-             << "' (ID: " << station->getStationID() << ") to the system." << endl;
-    }
-    
-    void addPassenger(Passenger* passenger) {
-        passengers.push_back(passenger);
-        cout << "Added passenger '" << passenger->getName() 
-             << "' (ID: " << passenger->getPassengerID() << ") to the system." << endl;
-    }
-    
-    Vehicle* findVehicle(int vehicleID) {
-        for (Vehicle* vehicle : vehicles) {
-            if (vehicle->getVehicleID() == vehicleID) {
-                return vehicle;
-            }
-        }
-        return nullptr;
-    }
-    
-    Station* findStation(int stationID) {
-        for (Station* station : stations) {
-            if (station->getStationID() == stationID) {
-                return station;
-            }
-        }
-        return nullptr;
-    }
-    
-    Passenger* findPassenger(int passengerID) {
-        for (Passenger* passenger : passengers) {
-            if (passenger->getPassengerID() == passengerID) {
-                return passenger;
-            }
-        }
-        return nullptr;
-    }
-    
-    // Method to create and assign route to vehicle and update station schedules
-    bool createRoute(int vehicleID, int fromStationID, int toStationID, 
-                     int deptHour, int deptMin, int arrHour, int arrMin) {
-        Vehicle* vehicle = findVehicle(vehicleID);
-        Station* fromStation = findStation(fromStationID);
-        Station* toStation = findStation(toStationID);
-        
-        if (!vehicle || !fromStation || !toStation) {
-            cout << "Vehicle, from station, or to station not found!" << endl;
+    virtual bool withdraw(double amount) {
+        if (amount <= 0) {
+            cout << "Error: Withdrawal amount must be positive!" << endl;
             return false;
         }
-        
-        Time deptTime(deptHour, deptMin);
-        Time arrTime(arrHour, arrMin);
-        Route newRoute(fromStationID, toStationID, deptTime, arrTime);
-        
-        vehicle->addRoute(newRoute);
-        fromStation->addDeparture(vehicleID, newRoute.getRouteID());
-        toStation->addArrival(vehicleID, newRoute.getRouteID());
-        
+        if (amount > balance) {
+            cout << "Error: Insufficient funds! Balance: $" << fixed << setprecision(2) 
+                 << balance << endl;
+            return false;
+        }
+        balance -= amount;
+        transactionHistory.push_back(Transaction(amount, "Withdrawal"));
+        cout << "Withdrew $" << fixed << setprecision(2) << amount 
+             << " from account " << accountNumber << endl;
         return true;
     }
-    
-    void displayAllVehicles() const {
-        cout << "\n=== ALL VEHICLES ===" << endl;
-        for (Vehicle* vehicle : vehicles) {
-            vehicle->displayInfo();
+
+    // Transfer money to another account
+    bool transfer(Account& toAccount, double amount) {
+        if (this->withdraw(amount)) {
+            toAccount.deposit(amount);
+            cout << "Transfer successful: $" << fixed << setprecision(2) 
+                 << amount << " from account " << accountNumber 
+                 << " to account " << toAccount.getAccountNumber() << endl;
+            return true;
         }
+        return false;
     }
-    
-    void displayAllStations() const {
-        cout << "\n=== ALL STATIONS ===" << endl;
-        for (Station* station : stations) {
-            station->displayInfo();
-        }
-    }
-    
-    void displayAllPassengers() const {
-        cout << "\n=== ALL PASSENGERS ===" << endl;
-        for (Passenger* passenger : passengers) {
-            passenger->displayInfo();
-        }
-    }
-    
-    void displayAvailableRoutes() const {
-        cout << "\n=== AVAILABLE ROUTES ===" << endl;
-        for (Vehicle* vehicle : vehicles) {
-            cout << "\nVehicle " << vehicle->getVehicleID() << " (" 
-                 << vehicle->getVehicleName() << "):" << endl;
-            for (const Route& route : vehicle->getAssignedRoutes()) {
+
+    // Display account information
+    virtual void displayInfo() const {
+        cout << "\n--- Account Information ---" << endl;
+        cout << "Account Number: " << accountNumber << endl;
+        cout << "Owner: " << ownerName << endl;
+        cout << "Balance: $" << fixed << setprecision(2) << balance << endl;
+        cout << "Transaction History:" << endl;
+        if (transactionHistory.empty()) {
+            cout << "  No transactions" << endl;
+        } else {
+            for (const auto& trans : transactionHistory) {
                 cout << "  ";
-                route.displayInfo();
+                trans.displayTransaction();
             }
         }
+    }
+
+    // Getters
+    int getAccountNumber() const { return accountNumber; }
+    double getBalance() const { return balance; }
+    string getOwnerName() const { return ownerName; }
+
+    // Operator overloading
+    // += operator for adding transactions
+    Account& operator+=(const Transaction& trans) {
+        if (trans.getType() == "Deposit") {
+            deposit(trans.getAmount());
+        }
+        return *this;
+    }
+
+    // == operator for comparing accounts (by balance)
+    bool operator==(const Account& other) const {
+        return balance == other.balance;
+    }
+
+    // > operator for comparing balances
+    bool operator>(const Account& other) const {
+        return balance > other.balance;
+    }
+
+    // Friend function for << operator
+    friend ostream& operator<<(ostream& os, const Account& account) {
+        os << "Account " << account.accountNumber << " (" << account.ownerName 
+           << "): $" << fixed << setprecision(2) << account.balance;
+        return os;
     }
 };
 
-// Initialize static members
-int Vehicle::nextVehicleID = 1;
-int Passenger::nextPassengerID = 1;
-int Station::nextStationID = 1;
-int Route::nextRouteID = 1;
+// Initialize static member
+int Account::nextAccountNumber = 1001;
 
-// Sample data initialization
-void initializeSampleData(TransportationSystem& ts) {
-    // Add stations
-    ts.addStation(new Station("Ben Thanh", "District 1", "Bus"));
-    ts.addStation(new Station("Tan Son Nhat", "Tan Binh", "Bus"));
-    ts.addStation(new Station("Thu Duc Campus", "Thu Duc", "Bus"));
-    ts.addStation(new Station("Landmark 81", "Binh Thanh", "Bus"));
+// Derived SavingsAccount class
+class SavingsAccount : public Account {
+private:
+    double interestRate;
+    double withdrawalLimit;
+    int withdrawalsThisMonth;
+    static const int MAX_WITHDRAWALS = 6; // Federal savings account limit
 
-    // Add vehicles
-    ts.addVehicle(new Vehicle("Bus A1", 40));
-    ts.addVehicle(new ExpressBus("Express E1", 30, 60.0, 4));
-    ts.addVehicle(new Vehicle("Bus B2", 50));
+public:
+    // Constructor
+    SavingsAccount(const string& owner, double initialBalance = 0.0, 
+                   double rate = 0.02, double limit = 1000.0) 
+        : Account(owner, initialBalance), interestRate(rate), 
+          withdrawalLimit(limit), withdrawalsThisMonth(0) {}
 
-    // Add passengers
-    ts.addPassenger(new Passenger("Doan Trong Trung"));
-    ts.addPassenger(new Passenger("Nguyen Thi Mai"));
-    ts.addPassenger(new Passenger("Le Van Khoa"));
-
-    // Create routes
-    ts.createRoute(1, 1, 2, 7, 30, 8, 10);  // Bus A1: Ben Thanh → Tan Son Nhat
-    ts.createRoute(1, 2, 3, 8, 20, 9, 00);  // Bus A1: Tan Son Nhat → Thu Duc
-    ts.createRoute(2, 1, 4, 6, 45, 7, 15);  // Express E1: Ben Thanh → Landmark 81
-    ts.createRoute(3, 4, 2, 9, 30, 10, 10); // Bus B2: Landmark 81 → Tan Son Nhat
-
-    cout << "\n✅ Sample data initialized successfully!" << endl;
-}
-
-// Menu-driven interface
-void runMenu(TransportationSystem& ts) {
-    int choice;
-
-    do {
-        cout << "\n=== ENHANCED TRANSPORTATION SYSTEM MENU ===" << endl;
-        cout << "1.  Add Vehicle" << endl;
-        cout << "2.  Add Station" << endl;
-        cout << "3.  Add Passenger" << endl;
-        cout << "4.  Create Route" << endl;
-        cout << "5.  Book Passenger Route" << endl;
-        cout << "6.  Cancel Passenger Route" << endl;
-        cout << "7.  Display All Vehicles" << endl;
-        cout << "8.  Display All Stations" << endl;
-        cout << "9.  Display All Passengers" << endl;
-        cout << "10. Display Available Routes" << endl;
-        cout << "11. Find Vehicle by ID" << endl;
-        cout << "12. Find Station by ID" << endl;
-        cout << "13. Find Passenger by ID" << endl;
-        cout << "0.  Exit" << endl;
-        cout << "Enter your choice: ";
-        cin >> choice;
-
-        switch (choice) {
-            case 1: {
-                string name;
-                int capacity;
-                cout << "Enter vehicle name: ";
-                cin.ignore();
-                getline(cin, name);
-                cout << "Enter capacity: ";
-                cin >> capacity;
-
-                int typeChoice;
-                cout << "Select vehicle type:\n1. Regular Vehicle\n2. Express Bus\nEnter choice: ";
-                cin >> typeChoice;
-
-                if (typeChoice == 1) {
-                    ts.addVehicle(new Vehicle(name, capacity));
-                } else if (typeChoice == 2) {
-                    double speed;
-                    int maxStops;
-                    cout << "Enter speed (km/h): ";
-                    cin >> speed;
-                    cout << "Enter max stops: ";
-                    cin >> maxStops;
-                    ts.addVehicle(new ExpressBus(name, capacity, speed, maxStops));
-                } else {
-                    cout << "Invalid vehicle type selected." << endl;
-                }
-                break;
-            }
-            case 2: {
-                string name, location, type;
-                cout << "Enter station name: ";
-                cin.ignore();
-                getline(cin, name);
-                cout << "Enter location: ";
-                getline(cin, location);
-                cout << "Enter type (Bus/Train): ";
-                getline(cin, type);
-                ts.addStation(new Station(name, location, type));
-                break;
-            }
-            case 3: {
-                string name;
-                cout << "Enter passenger name: ";
-                cin.ignore();
-                getline(cin, name);
-                ts.addPassenger(new Passenger(name));
-                break;
-            }
-            case 4: {
-                int vehicleID, startStationID, endStationID;
-                int startHour, startMin, endHour, endMin;
-                cout << "Enter vehicle ID: ";
-                cin >> vehicleID;
-                cout << "Enter start station ID: ";
-                cin >> startStationID;
-                cout << "Enter end station ID: ";
-                cin >> endStationID;
-                cout << "Enter departure time (HH MM): ";
-                cin >> startHour >> startMin;
-                cout << "Enter arrival time (HH MM): ";
-                cin >> endHour >> endMin;
-
-                ts.createRoute(vehicleID, startStationID, endStationID, startHour, startMin, endHour, endMin);
-                break;
-            }
-            case 5: {
-                int passengerID, vehicleID, routeID;
-                cout << "Enter passenger ID: ";
-                cin >> passengerID;
-                cout << "Enter vehicle ID: ";
-                cin >> vehicleID;
-                cout << "Enter route ID: ";
-                cin >> routeID;
-
-                Passenger* p = ts.findPassenger(passengerID);
-                Vehicle* v = ts.findVehicle(vehicleID);
-                if (p && v) {
-                    p->bookRoute(v, routeID);
-                } else {
-                    cout << "Passenger or Vehicle not found!" << endl;
-                }
-                break;
-            }
-            case 6: {
-                int passengerID, vehicleID, routeID;
-                cout << "Enter passenger ID: ";
-                cin >> passengerID;
-                cout << "Enter vehicle ID: ";
-                cin >> vehicleID;
-                cout << "Enter route ID: ";
-                cin >> routeID;
-
-                Passenger* p = ts.findPassenger(passengerID);
-                Vehicle* v = ts.findVehicle(vehicleID);
-                if (p && v) {
-                    p->cancelRoute(v, routeID);
-                } else {
-                    cout << "Passenger or Vehicle not found!" << endl;
-                }
-                break;
-            }
-            case 7:
-                ts.displayAllVehicles();
-                break;
-            case 8:
-                ts.displayAllStations();
-                break;
-            case 9:
-                ts.displayAllPassengers();
-                break;
-            case 10:
-                ts.displayAvailableRoutes();
-                break;
-            case 11: {
-                int id;
-                cout << "Enter vehicle ID: ";
-                cin >> id;
-                Vehicle* v = ts.findVehicle(id);
-                if (v) v->displayInfo();
-                else cout << "Vehicle not found." << endl;
-                break;
-            }
-            case 12: {
-                int id;
-                cout << "Enter station ID: ";
-                cin >> id;
-                Station* s = ts.findStation(id);
-                if (s) s->displayInfo();
-                else cout << "Station not found." << endl;
-                break;
-            }
-            case 13: {
-                int id;
-                cout << "Enter passenger ID: ";
-                cin >> id;
-                Passenger* p = ts.findPassenger(id);
-                if (p) p->displayInfo();
-                else cout << "Passenger not found." << endl;
-                break;
-            }
-            case 0:
-                cout << "Exiting system. Goodbye!" << endl;
-                break;
-            default:
-                cout << "Invalid choice. Try again." << endl;
+    // Override withdraw method with savings account restrictions
+    bool withdraw(double amount) override {
+        if (withdrawalsThisMonth >= MAX_WITHDRAWALS) {
+            cout << "Error: Exceeded monthly withdrawal limit for savings account!" << endl;
+            return false;
         }
+        if (amount > withdrawalLimit) {
+            cout << "Error: Withdrawal amount exceeds limit of $" 
+                 << fixed << setprecision(2) << withdrawalLimit << endl;
+            return false;
+        }
+        
+        if (Account::withdraw(amount)) { // Call base class method
+            withdrawalsThisMonth++;
+            return true;
+        }
+        return false;
+    }
 
-    } while (choice != 0);
-}
+    // Apply monthly interest
+    void applyInterest() {
+        double interest = balance * (interestRate / 12); // Monthly interest
+        balance += interest;
+        transactionHistory.push_back(Transaction(interest, "Interest"));
+        cout << "Applied monthly interest: $" << fixed << setprecision(2) 
+             << interest << " to savings account " << accountNumber << endl;
+    }
 
+    // Reset monthly withdrawal counter (would be called monthly)
+    void resetMonthlyWithdrawals() {
+        withdrawalsThisMonth = 0;
+    }
+
+    // Override displayInfo to show savings-specific information
+    void displayInfo() const override {
+        Account::displayInfo(); // Call base class method
+        cout << "Account Type: Savings Account" << endl;
+        cout << "Interest Rate: " << fixed << setprecision(2) 
+             << (interestRate * 100) << "% annually" << endl;
+        cout << "Withdrawal Limit: $" << fixed << setprecision(2) 
+             << withdrawalLimit << endl;
+        cout << "Withdrawals This Month: " << withdrawalsThisMonth 
+             << "/" << MAX_WITHDRAWALS << endl;
+    }
+
+    // Getters
+    double getInterestRate() const { return interestRate; }
+    double getWithdrawalLimit() const { return withdrawalLimit; }
+};
+
+// Customer class to manage multiple accounts
+class Customer {
+private:
+    string name;
+    int customerID;
+    vector<Account*> accounts; // Using pointers to support polymorphism
+    static int nextCustomerID;
+
+public:
+    // Constructor
+    Customer(const string& customerName) : name(customerName) {
+        customerID = nextCustomerID++;
+    }
+
+    // Destructor
+    ~Customer() {
+        // Clean up dynamically allocated accounts if any
+        // Note: In this implementation, we're not dynamically allocating
+    }
+
+    // Add account to customer
+    void addAccount(Account* account) {
+        accounts.push_back(account);
+        cout << "Account " << account->getAccountNumber() 
+             << " added to customer " << name << endl;
+    }
+
+    // Calculate total balance across all accounts
+    double getTotalBalance() const {
+        double total = 0.0;
+        for (const auto& account : accounts) {
+            total += account->getBalance();
+        }
+        return total;
+    }
+
+    // Display customer information
+    void displayCustomerInfo() const {
+        cout << "\n=== Customer Information ===" << endl;
+        cout << "Customer ID: " << customerID << endl;
+        cout << "Name: " << name << endl;
+        cout << "Total Accounts: " << accounts.size() << endl;
+        cout << "Total Balance: $" << fixed << setprecision(2) 
+             << getTotalBalance() << endl;
+        
+        cout << "\nAccount Details:" << endl;
+        for (const auto& account : accounts) {
+            cout << *account << endl; // Using overloaded << operator
+        }
+    }
+
+    // Find account by account number
+    Account* findAccount(int accountNum) {
+        for (auto& account : accounts) {
+            if (account->getAccountNumber() == accountNum) {
+                return account;
+            }
+        }
+        return nullptr;
+    }
+
+    // Getters
+    string getName() const { return name; }
+    int getCustomerID() const { return customerID; }
+    const vector<Account*>& getAccounts() const { return accounts; }
+};
+
+// Initialize static member
+int Customer::nextCustomerID = 5001;
+
+// Operations class to manage all banking operations
+class Operations {
+private:
+    vector<Customer*> customers;
+    vector<Account*> allAccounts;
+
+public:
+    // Constructor
+    Operations() {}
+
+    // Destructor
+    ~Operations() {
+        // Clean up if needed
+    }
+
+    // Create a new customer
+    Customer* createCustomer(const string& name) {
+        Customer* newCustomer = new Customer(name);
+        customers.push_back(newCustomer);
+        cout << "Customer created: " << name << " (ID: " 
+             << newCustomer->getCustomerID() << ")" << endl;
+        return newCustomer;
+    }
+
+    // Create a regular account
+    Account* createAccount(const string& ownerName, double initialBalance = 0.0) {
+        Account* newAccount = new Account(ownerName, initialBalance);
+        allAccounts.push_back(newAccount);
+        cout << "Regular account created for " << ownerName 
+             << " (Account #" << newAccount->getAccountNumber() << ")" << endl;
+        return newAccount;
+    }
+
+    // Create a savings account
+    SavingsAccount* createSavingsAccount(const string& ownerName, 
+                                       double initialBalance = 0.0, 
+                                       double rate = 0.02, 
+                                       double limit = 1000.0) {
+        SavingsAccount* newAccount = new SavingsAccount(ownerName, initialBalance, rate, limit);
+        allAccounts.push_back(newAccount);
+        cout << "Savings account created for " << ownerName 
+             << " (Account #" << newAccount->getAccountNumber() << ")" << endl;
+        return newAccount;
+    }
+
+    // Link account to customer
+    void assignAccountToCustomer(Customer* customer, Account* account) {
+        if (customer && account) {
+            customer->addAccount(account);
+            cout << "Account " << account->getAccountNumber() 
+                 << " assigned to customer " << customer->getName() << endl;
+        } else {
+            cout << "Error: Invalid customer or account!" << endl;
+        }
+    }
+
+    // Perform deposit operation
+    bool performDeposit(int accountNumber, double amount) {
+        Account* account = findAccountByNumber(accountNumber);
+        if (account) {
+            account->deposit(amount);
+            return true;
+        } else {
+            cout << "Error: Account " << accountNumber << " not found!" << endl;
+            return false;
+        }
+    }
+
+    // Perform withdrawal operation
+    bool performWithdrawal(int accountNumber, double amount) {
+        Account* account = findAccountByNumber(accountNumber);
+        if (account) {
+            return account->withdraw(amount);
+        } else {
+            cout << "Error: Account " << accountNumber << " not found!" << endl;
+            return false;
+        }
+    }
+
+    // Perform transfer operation
+    bool performTransfer(int fromAccountNumber, int toAccountNumber, double amount) {
+        Account* fromAccount = findAccountByNumber(fromAccountNumber);
+        Account* toAccount = findAccountByNumber(toAccountNumber);
+        
+        if (fromAccount && toAccount) {
+            return fromAccount->transfer(*toAccount, amount);
+        } else {
+            cout << "Error: One or both accounts not found!" << endl;
+            return false;
+        }
+    }
+
+    // Apply interest to all savings accounts
+    void applyInterestToAllSavings() {
+        cout << "\n--- Applying Interest to All Savings Accounts ---" << endl;
+        int count = 0;
+        for (Account* account : allAccounts) {
+            // Try to cast to SavingsAccount
+            SavingsAccount* savingsAcc = dynamic_cast<SavingsAccount*>(account);
+            if (savingsAcc) {
+                savingsAcc->applyInterest();
+                count++;
+            }
+        }
+        cout << "Interest applied to " << count << " savings accounts." << endl;
+    }
+
+    // Display all customers
+    void displayAllCustomers() const {
+        cout << "\n=== ALL CUSTOMERS ===" << endl;
+        if (customers.empty()) {
+            cout << "No customers in the system." << endl;
+            return;
+        }
+        
+        for (const Customer* customer : customers) {
+            customer->displayCustomerInfo();
+            cout << string(50, '-') << endl;
+        }
+    }
+
+    // Display all accounts
+    void displayAllAccounts() const {
+        cout << "\n=== ALL ACCOUNTS ===" << endl;
+        if (allAccounts.empty()) {
+            cout << "No accounts in the system." << endl;
+            return;
+        }
+        
+        for (const Account* account : allAccounts) {
+            account->displayInfo();
+            cout << string(40, '-') << endl;
+        }
+    }
+
+    // Display system summary
+    void displaySystemSummary() const {
+        cout << "\n=== BANKING SYSTEM SUMMARY ===" << endl;
+        cout << "Total Customers: " << customers.size() << endl;
+        cout << "Total Accounts: " << allAccounts.size() << endl;
+        
+        double totalSystemBalance = 0.0;
+        int regularAccounts = 0, savingsAccounts = 0;
+        
+        for (const Account* account : allAccounts) {
+            totalSystemBalance += account->getBalance();
+            if (dynamic_cast<const SavingsAccount*>(account)) {
+                savingsAccounts++;
+            } else {
+                regularAccounts++;
+            }
+        }
+        
+        cout << "Regular Accounts: " << regularAccounts << endl;
+        cout << "Savings Accounts: " << savingsAccounts << endl;
+        cout << "Total System Balance: $" << fixed << setprecision(2) 
+             << totalSystemBalance << endl;
+    }
+
+    // Find customer by ID
+    Customer* findCustomerById(int customerID) {
+        for (Customer* customer : customers) {
+            if (customer->getCustomerID() == customerID) {
+                return customer;
+            }
+        }
+        return nullptr;
+    }
+
+    // Find account by account number
+    Account* findAccountByNumber(int accountNumber) {
+        for (Account* account : allAccounts) {
+            if (account->getAccountNumber() == accountNumber) {
+                return account;
+            }
+        }
+        return nullptr;
+    }
+
+    // Monthly operations (reset withdrawal counters, apply interest)
+    void performMonthlyOperations() {
+        cout << "\n--- Performing Monthly Operations ---" << endl;
+        
+        // Reset withdrawal counters for savings accounts
+        for (Account* account : allAccounts) {
+            SavingsAccount* savingsAcc = dynamic_cast<SavingsAccount*>(account);
+            if (savingsAcc) {
+                savingsAcc->resetMonthlyWithdrawals();
+            }
+        }
+        
+        // Apply interest to all savings accounts
+        applyInterestToAllSavings();
+        
+        cout << "Monthly operations completed." << endl;
+    }
+
+    // Get system statistics
+    void getSystemStatistics() const {
+        cout << "\n=== SYSTEM STATISTICS ===" << endl;
+        
+        if (allAccounts.empty()) {
+            cout << "No accounts in the system for statistics." << endl;
+            return;
+        }
+        
+        double totalBalance = 0.0;
+        double maxBalance = allAccounts[0]->getBalance();
+        double minBalance = allAccounts[0]->getBalance();
+        Account* richestAccount = allAccounts[0];
+        
+        for (const Account* account : allAccounts) {
+            double balance = account->getBalance();
+            totalBalance += balance;
+            
+            if (balance > maxBalance) {
+                maxBalance = balance;
+                richestAccount = const_cast<Account*>(account);
+            }
+            if (balance < minBalance) {
+                minBalance = balance;
+            }
+        }
+        
+        double averageBalance = totalBalance / allAccounts.size();
+        
+        cout << "Average Account Balance: $" << fixed << setprecision(2) 
+             << averageBalance << endl;
+        cout << "Highest Balance: $" << fixed << setprecision(2) 
+             << maxBalance << " (Account #" << richestAccount->getAccountNumber() << ")" << endl;
+        cout << "Lowest Balance: $" << fixed << setprecision(2) << minBalance << endl;
+    }
+};
+
+// Main function with comprehensive testing
 int main() {
-    cout << "=== PUBLIC TRANSPORTATION MANAGEMENT SYSTEM ===" << endl;
-    cout << "Initializing system..." << endl;
+    cout << "=== Bank Account Management System ===" << endl;
+    cout << "Testing Object-Oriented Programming Concepts with Operations Class\n" << endl;
+
+    // Create the Operations manager
+    Operations bankSystem;
+
+    // Test 1: Create customers using Operations class
+    cout << "1. Creating Customers using Operations class..." << endl;
+    Customer* alice = bankSystem.createCustomer("Alice Johnson");
+    Customer* bob = bankSystem.createCustomer("Bob Smith");
+    Customer* charlie = bankSystem.createCustomer("Charlie Brown");
+
+    // Test 2: Create different types of accounts using Operations class
+    cout << "\n2. Creating Accounts using Operations class..." << endl;
+    Account* aliceChecking = bankSystem.createAccount("Alice Johnson", 1000.0);
+    SavingsAccount* aliceSavings = bankSystem.createSavingsAccount("Alice Johnson", 5000.0, 0.025, 500.0);
+    Account* bobChecking = bankSystem.createAccount("Bob Smith", 750.0);
+    SavingsAccount* charlieSavings = bankSystem.createSavingsAccount("Charlie Brown", 3000.0, 0.03, 300.0);
+
+    // Test 3: Assign accounts to customers using Operations class
+    cout << "\n3. Assigning Accounts to Customers..." << endl;
+    bankSystem.assignAccountToCustomer(alice, aliceChecking);
+    bankSystem.assignAccountToCustomer(alice, aliceSavings);
+    bankSystem.assignAccountToCustomer(bob, bobChecking);
+    bankSystem.assignAccountToCustomer(charlie, charlieSavings);
+
+    // Test 4: Perform operations using Operations class
+    cout << "\n4. Performing Banking Operations..." << endl;
+    bankSystem.performDeposit(aliceChecking->getAccountNumber(), 200.0);
+    bankSystem.performWithdrawal(aliceChecking->getAccountNumber(), 150.0);
+    bankSystem.performDeposit(aliceSavings->getAccountNumber(), 1000.0);
+
+    // Test 5: Transfer operations using Operations class
+    cout << "\n5. Testing Transfer Operations..." << endl;
+    bankSystem.performTransfer(aliceChecking->getAccountNumber(), 
+                              bobChecking->getAccountNumber(), 100.0);
+
+    // Test 6: Apply interest to all savings accounts
+    cout << "\n6. Applying Interest to All Savings Accounts..." << endl;
+    bankSystem.applyInterestToAllSavings();
+
+    // Test 7: Test operator overloading (original functionality)
+    cout << "\n7. Testing Operator Overloading..." << endl;
     
-    TransportationSystem system;
+    // Test += operator
+    cout << "Adding transaction using += operator:" << endl;
+    Transaction bonusDeposit(100.0, "Deposit");
+    *aliceChecking += bonusDeposit;
+
+    // Test == operator
+    cout << "\nComparing account balances using == operator:" << endl;
+    if (*aliceChecking == *bobChecking) {
+        cout << "Alice's checking and Bob's checking have equal balances" << endl;
+    } else {
+        cout << "Alice's checking and Bob's checking have different balances" << endl;
+    }
+
+    // Test > operator
+    cout << "Comparing account balances using > operator:" << endl;
+    if (*aliceSavings > *aliceChecking) {
+        cout << "Alice's savings account has more money than her checking account" << endl;
+    }
+
+    // Test 8: Error handling with Operations class
+    cout << "\n8. Testing Error Handling..." << endl;
+    cout << "Attempting invalid operations:" << endl;
+    bankSystem.performDeposit(9999, 100.0); // Non-existent account
+    bankSystem.performWithdrawal(bobChecking->getAccountNumber(), 10000.0); // Overdraft attempt
+    bankSystem.performTransfer(9999, 1001, 100.0); // Invalid account numbers
+
+    // Test 9: Display system information using Operations class
+    cout << "\n9. Displaying System Information..." << endl;
+    bankSystem.displaySystemSummary();
+    bankSystem.getSystemStatistics();
+
+    // Test 10: Monthly operations
+    cout << "\n10. Performing Monthly Operations..." << endl;
+    bankSystem.performMonthlyOperations();
+
+    // Test 11: Display all customers and accounts
+    cout << "\n11. Displaying All Customers..." << endl;
+    bankSystem.displayAllCustomers();
+
+    cout << "\n12. Displaying All Accounts..." << endl;
+    bankSystem.displayAllAccounts();
+
+    // Test 12: Search functionality
+    cout << "\n13. Testing Search Functionality..." << endl;
+    Customer* foundCustomer = bankSystem.findCustomerById(alice->getCustomerID());
+    if (foundCustomer) {
+        cout << "Found customer: " << foundCustomer->getName() << endl;
+    }
+
+    Account* foundAccount = bankSystem.findAccountByNumber(aliceChecking->getAccountNumber());
+    if (foundAccount) {
+        cout << "Found account: " << *foundAccount << endl;
+    }
+
+    // Test 13: Polymorphism demonstration
+    cout << "\n14. Demonstrating Polymorphism..." << endl;
+    cout << "Adding small bonus to all accounts (polymorphic behavior):" << endl;
+    vector<Account*> allSystemAccounts = {aliceChecking, aliceSavings, bobChecking, charlieSavings};
     
-    // Initialize with sample data
-    initializeSampleData(system);
-    
-    // Run interactive menu
-    runMenu(system);
-    
+    for (Account* acc : allSystemAccounts) {
+        cout << "Before bonus: " << *acc << endl;
+        acc->deposit(25.0); // Virtual function call - polymorphic behavior
+        cout << "After bonus: " << *acc << endl;
+        cout << "---" << endl;
+    }
+
+    // Final system summary
+    cout << "\n15. Final System Summary..." << endl;
+    bankSystem.displaySystemSummary();
+    bankSystem.getSystemStatistics();
+
+    cout << "\n=== Complete System Testing with Operations Class Complete ===" << endl;
     return 0;
 }
